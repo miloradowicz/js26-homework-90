@@ -2,21 +2,62 @@ import { useRef, useState, useEffect, MouseEventHandler } from 'react';
 import { Card, Grid2 as Grid, hexToRgb } from '@mui/material';
 import { ColorChangeHandler, ChromePicker } from 'react-color';
 
-import { Coord } from './types';
+import { GenericError, InboundMessage, Point, MultiUserPointCollection, OutboundMessage } from './types';
+import config from './config';
 
 const App = () => {
   const ref = useRef<HTMLCanvasElement>(null);
   const [context, setContext] = useState<CanvasRenderingContext2D | null>();
+  const ws = useRef<WebSocket | null>();
 
   const [color, setColor] = useState<string>('rgb(255,0,0)');
   const [paint, setPaint] = useState(false);
-  const [coord, setCoord] = useState<Coord[]>([]);
+  const [pts, setPts] = useState<MultiUserPointCollection>({});
+
+  const addPt = (pts: MultiUserPointCollection, id: string, pt: Point) => {
+    let _pts: Point[];
+
+    if (pts[id]) {
+      _pts = [...pts[id], pt];
+    } else {
+      _pts = [pt];
+    }
+
+    return { ...pts, [id]: _pts };
+  };
 
   useEffect(() => {
     if (ref.current) {
       const c = ref.current;
       setContext(c.getContext('2d'));
     }
+
+    ws.current = new WebSocket(config.url);
+
+    ws.current.onmessage = (e) => {
+      try {
+        const decoded = JSON.parse(e.data);
+
+        if ((decoded as GenericError)?.error) {
+          throw new Error(decoded.error.message);
+        }
+
+        const { type, source, payload } = decoded as InboundMessage;
+
+        switch (type) {
+          case 'NEW_POINT':
+            setPts((pts) => addPt(pts, source, payload));
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    };
+
+    return () => {
+      if (ws.current) {
+        ws.current.close();
+      }
+    };
   }, []);
 
   useEffect(() => {
@@ -26,27 +67,33 @@ const App = () => {
 
     context.clearRect(0, 0, context.canvas.width, context.canvas.height);
 
-    for (let i = 0; i < coord.length; i++) {
-      context.beginPath();
+    for (const id in pts) {
+      const _pts = pts[id];
 
-      if (coord[i].drag) {
-        context.moveTo(coord[i - 1].x, coord[i - 1].y);
-      } else {
-        context.moveTo(coord[i].x + 1, coord[i].y + 1);
+      for (let i = 0; i < _pts.length; i++) {
+        context.beginPath();
+
+        if (_pts[i].drag) {
+          context.moveTo(_pts[i - 1].x, _pts[i - 1].y);
+        } else {
+          context.moveTo(_pts[i].x + 1, _pts[i].y + 1);
+        }
+
+        context.lineTo(_pts[i].x, _pts[i].y);
+        context.closePath();
+        context.lineWidth = 2;
+        context.strokeStyle = _pts[i].color;
+        context.stroke();
       }
-
-      context.lineTo(coord[i].x, coord[i].y);
-      context.closePath();
-      context.lineWidth = 2;
-      context.strokeStyle = coord[i].color;
-      context.stroke();
     }
-  }, [context, coord]);
+  }, [context, pts]);
 
   const handleColor: ColorChangeHandler = (color) => setColor(hexToRgb(color.hex));
 
   const addPoint = (x: number, y: number, drag: boolean) => {
-    setCoord((coord) => [...coord, { x, y, drag, color }]);
+    if (ws.current) {
+      ws.current.send(JSON.stringify({ type: 'ADD_POINT', payload: { x, y, drag, color } } as OutboundMessage));
+    }
   };
 
   const handleClick: MouseEventHandler<HTMLCanvasElement> = (e) => {
