@@ -15,7 +15,21 @@ const router = express.Router();
 router.ws('/paint', (ws) => {
   const id = crypto.randomUUID();
   connections[id] = ws;
-  console.log(`${id} connected`);
+
+  for (const connId in connections) {
+    if (connId === id) {
+      continue;
+    }
+
+    const conn = connections[connId];
+
+    conn.send(
+      JSON.stringify({
+        type: 'CLIENT_CONNECTED',
+        source: id,
+      } as OutboundMessage)
+    );
+  }
 
   ws.on('message', (msg) => {
     try {
@@ -28,7 +42,7 @@ router.ws('/paint', (ws) => {
 
             conn.send(
               JSON.stringify({
-                type: 'NEW_POINT',
+                type: 'POINT_ADDED',
                 source: id,
                 payload: decoded.payload,
               } as OutboundMessage)
@@ -53,7 +67,17 @@ router.ws('/paint', (ws) => {
 
   ws.on('close', () => {
     delete connections[id];
-    console.log(`${id} disconnected`);
+
+    for (const connId in connections) {
+      const conn = connections[connId];
+
+      conn.send(
+        JSON.stringify({
+          type: 'CLIENT_DISCONNECTED',
+          source: id,
+        } as OutboundMessage)
+      );
+    }
   });
 });
 

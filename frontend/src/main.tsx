@@ -4,10 +4,13 @@ import { CssBaseline } from '@mui/material';
 import '@fontsource/roboto/cyrillic.css';
 
 import App from './App.tsx';
+import { SnackbarProvider } from 'notistack';
 
 createRoot(document.getElementById('root')!).render(
-  <StrictMode>
+  <>
     <CssBaseline />
-    <App />
-  </StrictMode>
+    <SnackbarProvider autoHideDuration={3000} anchorOrigin={{ vertical: 'top', horizontal: 'center' }} maxSnack={1}>
+      <App />
+    </SnackbarProvider>
+  </>
 );

@@ -17,9 +17,9 @@ export interface InboundMessage {
 }
 
 export interface OutboundMessage {
-  type: 'NEW_POINT';
+  type: 'POINT_ADDED' | 'CLIENT_CONNECTED' | 'CLIENT_DISCONNECTED';
   source: string;
-  payload: Point;
+  payload?: Point;
 }
 
 export interface GenericError {

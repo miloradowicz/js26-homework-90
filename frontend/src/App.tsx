@@ -4,11 +4,13 @@ import { ColorChangeHandler, ChromePicker } from 'react-color';
 
 import { GenericError, InboundMessage, Point, MultiUserPointCollection, OutboundMessage } from './types';
 import config from './config';
+import { useSnackbar } from 'notistack';
 
 const App = () => {
   const ref = useRef<HTMLCanvasElement>(null);
   const [context, setContext] = useState<CanvasRenderingContext2D | null>();
   const ws = useRef<WebSocket | null>();
+  const { enqueueSnackbar } = useSnackbar();
 
   const [color, setColor] = useState<string>('rgb(255,0,0)');
   const [paint, setPaint] = useState(false);
@@ -45,11 +47,26 @@ const App = () => {
         const { type, source, payload } = decoded as InboundMessage;
 
         switch (type) {
-          case 'NEW_POINT':
-            setPts((pts) => addPt(pts, source, payload));
+          case 'POINT_ADDED':
+            if (payload) {
+              setPts((pts) => addPt(pts, source, payload));
+            }
+            break;
+
+          case 'CLIENT_CONNECTED':
+            enqueueSnackbar(`Client ${source} joined`, { variant: 'info' });
+            break;
+
+          case 'CLIENT_DISCONNECTED':
+            enqueueSnackbar(`Client ${source} left`, { variant: 'info' });
+            break;
         }
       } catch (e) {
-        console.error(e);
+        if (e instanceof Error) {
+          enqueueSnackbar(e.message, { variant: 'error' });
+        } else {
+          console.error(e);
+        }
       }
     };
 
@@ -58,7 +75,7 @@ const App = () => {
         ws.current.close();
       }
     };
-  }, []);
+  }, [enqueueSnackbar]);
 
   useEffect(() => {
     if (!context) {
@@ -128,7 +145,7 @@ const App = () => {
             raised
             component='canvas'
             ref={ref}
-            width='1280'
+            width='960'
             height='720'
             onMouseDown={handleClick}
             onMouseMove={handleDrag}
