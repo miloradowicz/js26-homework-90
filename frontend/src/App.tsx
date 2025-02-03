@@ -47,10 +47,12 @@ const App = () => {
         const { type, source, payload } = decoded as InboundMessage;
 
         switch (type) {
+          case 'CONNECTION_ESTABLISHED':
+            setPts(payload as MultiUserPointCollection);
+            break;
+
           case 'POINT_ADDED':
-            if (payload) {
-              setPts((pts) => addPt(pts, source, payload));
-            }
+            setPts((pts) => addPt(pts, source as string, payload as Point));
             break;
 
           case 'CLIENT_CONNECTED':
@@ -114,7 +116,7 @@ const App = () => {
   };
 
   const handleClick: MouseEventHandler<HTMLCanvasElement> = (e) => {
-    const x = e.clientX - e.currentTarget.offsetLeft;
+    const x = e.pageX - e.currentTarget.offsetLeft;
     const y = e.pageY - e.currentTarget.offsetTop;
 
     setPaint(true);
@@ -122,7 +124,7 @@ const App = () => {
   };
 
   const handleDrag: MouseEventHandler<HTMLCanvasElement> = (e) => {
-    const x = e.clientX - e.currentTarget.offsetLeft;
+    const x = e.pageX - e.currentTarget.offsetLeft;
     const y = e.pageY - e.currentTarget.offsetTop;
 
     if (paint) {

@@ -11,15 +11,19 @@ export interface Point {
   color: string;
 }
 
+export interface MultiUserPointCollection {
+  [id: string]: Point[];
+}
+
 export interface InboundMessage {
   type: 'ADD_POINT';
   payload: Point;
 }
 
 export interface OutboundMessage {
-  type: 'POINT_ADDED' | 'CLIENT_CONNECTED' | 'CLIENT_DISCONNECTED';
-  source: string;
-  payload?: Point;
+  type: 'CONNECTION_ESTABLISHED' | 'POINT_ADDED' | 'CLIENT_CONNECTED' | 'CLIENT_DISCONNECTED';
+  source?: string;
+  payload?: Point | MultiUserPointCollection;
 }
 
 export interface GenericError {

@@ -10,9 +10,9 @@ export interface MultiUserPointCollection {
 }
 
 export interface InboundMessage {
-  type: 'POINT_ADDED' | 'CLIENT_CONNECTED' | 'CLIENT_DISCONNECTED';
-  source: string;
-  payload?: Point;
+  type: 'CONNECTION_ESTABLISHED' | 'POINT_ADDED' | 'CLIENT_CONNECTED' | 'CLIENT_DISCONNECTED';
+  source?: string;
+  payload?: Point | MultiUserPointCollection;
 }
 
 export interface OutboundMessage {

@@ -2,11 +2,13 @@ import express from 'express';
 import expressWs from 'express-ws';
 import cors from 'cors';
 
-import { Connections, GenericError, InboundMessage, OutboundMessage } from './types';
+import { Connections, GenericError, InboundMessage, MultiUserPointCollection, OutboundMessage } from './types';
 import config from './config';
 
 const app = express();
 expressWs(app);
+
+const pts: MultiUserPointCollection = {};
 
 const connections: Connections = {};
 
@@ -15,6 +17,13 @@ const router = express.Router();
 router.ws('/paint', (ws) => {
   const id = crypto.randomUUID();
   connections[id] = ws;
+
+  ws.send(
+    JSON.stringify({
+      type: 'CONNECTION_ESTABLISHED',
+      payload: pts,
+    } as OutboundMessage)
+  );
 
   for (const connId in connections) {
     if (connId === id) {
@@ -37,6 +46,12 @@ router.ws('/paint', (ws) => {
 
       switch (decoded.type) {
         case 'ADD_POINT':
+          if (!pts[id]) {
+            pts[id] = [];
+          }
+
+          pts[id].push(decoded.payload);
+
           for (const connId in connections) {
             const conn = connections[connId];
 
